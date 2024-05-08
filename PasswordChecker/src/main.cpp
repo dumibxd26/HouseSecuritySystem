@@ -149,6 +149,15 @@ void loop()
   //   myKeypad.setLastKeyPressed(key);
   //   myKeypad.printPressedKey(key);
   // }
+
+  // move the servo to position 0 degrees
+  moveServoToPosition(0);
+  delay(250);
+  // moveServoToPosition(90);
+  // delay(100);
+  moveServoToPosition(180);
+  delay(250);
+  // moveServoToPosition(90);
 }
 
 // Function to initialize the keypad pins
@@ -219,6 +228,7 @@ void initializePIR()
 void initializeServo()
 {
   myServo.attach(servoPin); // Attach the servo to the pin
+  // moveServoToPosition(90);  // Move the servo to the initial position
 }
 
 // Function to move the servo to a specific position
