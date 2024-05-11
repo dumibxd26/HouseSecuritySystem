@@ -8,8 +8,8 @@
 class Keypad
 {
 private:
-    int numRows;
-    int numCols;
+    const int numRows;
+    const int numCols;
     const int *rowPins;
     const int *colPins;
     const char **keys;

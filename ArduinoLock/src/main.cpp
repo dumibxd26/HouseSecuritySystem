@@ -1,20 +1,23 @@
+#include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <Keypad.h>
+#include "./Keypad/Keypad.h"
 #include <Servo.h>
 
-// 4x4 Keypad configuration
-const byte ROWS = 4; // four rows
-const byte COLS = 4; // four columns
-char keys[ROWS][COLS] = {
-    {'1', '2', '3', 'A'},
-    {'4', '5', '6', 'B'},
-    {'7', '8', '9', 'C'},
-    {'*', '0', '#', 'D'}};
-byte rowPins[ROWS] = {6, 7, 8, 9}; // row pins connected to R1, R2, R3, R4
-byte colPins[COLS] = {2, 3, 4, 5}; // column pins connected to C1, C2, C3, C4
+// Keypad setup
+const int numRows = 4; // four rows
+const int numCols = 4; // four columns
 
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+const int rowPins[numRows] = {6, 7, 8, 9}; // row pins connected to R1, R2, R3, R4
+const int colPins[numCols] = {2, 3, 4, 5}; // column pins connected to C1, C2, C3, C4
+
+const char *keys[] = {
+    "123A",
+    "456B",
+    "789C",
+    "*0#D"};
+
+Keypad keypad(numRows, numCols, rowPins, colPins, keys);
 
 // RGB LED pins
 const int redPin = 10;
@@ -25,183 +28,187 @@ const int bluePin = 12;
 const int buzzerPin = 13;
 
 // I2C LCD Address and Initialization
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Adjust the address if needed
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // Servo motor configuration
 Servo myServo;
 const int servoPin = A0;
-int servoPosition = 0;
 
-// Counter for display
-int counter = 0;
-unsigned long lastCounterUpdate = 0;
-const unsigned long counterUpdateInterval = 1000; // Update every second
+// Password management
+const String correctPassword = "123";
+const String emergencyPassword = "000";
+String enteredPassword = "";
+int attemptCount = 0;
+bool stopAlarm = false;
+bool messedUp = false;
+int lastTimeKeyPressed = 0;
+int lastTimeAlarm1000 = 0;
+int lastTimeAlarm500 = 0;
+int lastTimeMessedUpKeyPressed = 0;
 
-// RGB LED color change
-unsigned long lastRGBUpdate = 0;
-const unsigned long rgbUpdateInterval = 500; // Change color every half second
-int rgbState = 0;
-
-// Buzzer alert
-unsigned long lastBuzzerAlert = 0;
-const unsigned long buzzerAlertInterval = 3000; // Alert every 3 seconds
-
-// Servo motor rotation
-unsigned long lastServoUpdate = 0;
-const unsigned long servoUpdateInterval = 50; // Increment servo position every 50 ms
-bool servoIncreasing = true;
+// void policeAlarm();
+void accessGranted();
+void accessDenied();
+void openDoorWithTone();
 
 void setup()
 {
-  Serial.begin(9600); // UART communication with ESP32
+  Serial.begin(9600);
   myServo.attach(servoPin);
-
-  // Initialize RGB LED pins
+  keypad.initialize();
+  pinMode(buzzerPin, OUTPUT);
+  digitalWrite(buzzerPin, HIGH); // Ensure buzzer is off initially
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
-
-  // Initialize Buzzer Pin
-  pinMode(buzzerPin, OUTPUT);
-
-  // Initialize LCD
   lcd.init();
   lcd.backlight();
   lcd.setCursor(0, 0);
-  lcd.print("System Ready");
-
-  delay(1000);
-  lcd.clear();
-}
-
-void updateDisplay()
-{
-  lcd.setCursor(0, 0);
-  lcd.print("Counter: ");
-  lcd.setCursor(9, 0);
-  lcd.print(counter);
-}
-
-void handleRGB()
-{
-  switch (rgbState)
-  {
-  case 0:
-    analogWrite(redPin, 255);
-    analogWrite(greenPin, 0);
-    analogWrite(bluePin, 0);
-    break;
-  case 1:
-    analogWrite(redPin, 0);
-    analogWrite(greenPin, 255);
-    analogWrite(bluePin, 0);
-    break;
-  case 2:
-    analogWrite(redPin, 0);
-    analogWrite(greenPin, 0);
-    analogWrite(bluePin, 255);
-    break;
-  case 3:
-    analogWrite(redPin, 255);
-    analogWrite(greenPin, 255);
-    analogWrite(bluePin, 0);
-    break;
-  case 4:
-    analogWrite(redPin, 0);
-    analogWrite(greenPin, 255);
-    analogWrite(bluePin, 255);
-    break;
-  case 5:
-    analogWrite(redPin, 255);
-    analogWrite(greenPin, 0);
-    analogWrite(bluePin, 255);
-    break;
-  case 6:
-    analogWrite(redPin, 255);
-    analogWrite(greenPin, 255);
-    analogWrite(bluePin, 255);
-    break;
-  case 7:
-    analogWrite(redPin, 0);
-    analogWrite(greenPin, 0);
-    analogWrite(bluePin, 0);
-    break;
-  }
-  rgbState = (rgbState + 1) % 8;
-}
-
-void handleBuzzerAlert()
-{
-  tone(buzzerPin, 1000, 200); // Buzz at 1 kHz for 200 ms
-}
-
-void handleServo()
-{
-  if (servoIncreasing)
-  {
-    servoPosition += 1;
-    if (servoPosition >= 180)
-    {
-      servoPosition = 180;
-      servoIncreasing = false;
-    }
-  }
-  else
-  {
-    servoPosition -= 1;
-    if (servoPosition <= 0)
-    {
-      servoPosition = 0;
-      servoIncreasing = true;
-    }
-  }
-  myServo.write(servoPosition);
+  lcd.print("Enter Password:");
 }
 
 void loop()
 {
   char key = keypad.getKey();
-  if (key)
+  int currentTime = millis();
+  if (key != '\0' && currentTime - lastTimeKeyPressed > 250 && !messedUp)
   {
-    Serial.print("Key Pressed: ");
-    Serial.println(key);
-    lcd.setCursor(0, 1);
-    lcd.print("Key Pressed: ");
-    lcd.setCursor(13, 1);
-    lcd.print(key);
-    delay(500);
-    lcd.setCursor(0, 1);
-    lcd.print("                "); // Clear the line
+    lastTimeKeyPressed = currentTime;
+    // set this here for the following case:
+    // when the user enters the emergency code, the first time, te last key pressed for the password
+    // is considered as the first key of the emergency code, if we do this it will have the correct debounce
+    lastTimeMessedUpKeyPressed = currentTime;
+    enteredPassword += key;
+    lcd.clear();
+    lcd.print("Password: *");
+    lcd.print(enteredPassword.length());
+
+    if (enteredPassword.length() == 3)
+    {
+      if (enteredPassword == correctPassword)
+      {
+        accessGranted();
+      }
+      else
+      {
+        accessDenied();
+      }
+      enteredPassword = ""; // Reset password entry
+    }
   }
 
-  unsigned long currentMillis = millis();
-
-  // Update counter on display every second
-  if (currentMillis - lastCounterUpdate >= counterUpdateInterval)
+  if (messedUp)
   {
-    lastCounterUpdate = currentMillis;
-    counter++;
-    updateDisplay();
-  }
+    if (currentTime - lastTimeAlarm1000 > 300)
+    {
+      lastTimeAlarm1000 = currentTime;
+      tone(buzzerPin, 1000, 300);
+    }
+    if (currentTime - lastTimeAlarm500 > 600)
+    {
+      lastTimeAlarm500 = currentTime;
+      tone(buzzerPin, 500, 300);
+    }
 
-  // Change RGB LED color every half second
-  if (currentMillis - lastRGBUpdate >= rgbUpdateInterval)
-  {
-    lastRGBUpdate = currentMillis;
-    handleRGB();
-  }
+    if (key)
+    {
+      int currentTime = millis();
+      if (currentTime - lastTimeMessedUpKeyPressed > 250)
+      {
+        Serial.println("Key: " + String(key));
+        lastTimeMessedUpKeyPressed = currentTime;
+        enteredPassword += key;
 
-  // Buzzer alert every 3 seconds
-  if (currentMillis - lastBuzzerAlert >= buzzerAlertInterval)
-  {
-    lastBuzzerAlert = currentMillis;
-    handleBuzzerAlert();
-  }
-
-  // Update servo position every 50 ms
-  if (currentMillis - lastServoUpdate >= servoUpdateInterval)
-  {
-    lastServoUpdate = currentMillis;
-    handleServo();
+        if (enteredPassword.length() == 3)
+        {
+          if (enteredPassword == emergencyPassword)
+          {
+            noTone(buzzerPin);
+            digitalWrite(buzzerPin, LOW); // Turn off buzzer
+            messedUp = false;
+            accessGranted();
+          }
+          enteredPassword = ""; // Reset password entry
+        }
+      }
+    }
   }
 }
+
+void accessGranted()
+{
+  lcd.clear();
+  lcd.print("Access Permitted");
+
+  digitalWrite(greenPin, HIGH); // Turn on green LED
+  myServo.write(0);             // Rotate servo to open
+
+  tone(buzzerPin, 800, 300);
+  delay(300);
+  noTone(buzzerPin);
+  tone(buzzerPin, 1000, 300);
+  delay(300);
+  noTone(buzzerPin);
+  tone(buzzerPin, 1200, 300);
+  delay(300);
+  noTone(buzzerPin);
+  tone(buzzerPin, 1400, 600);
+  delay(600);
+  noTone(buzzerPin);
+  digitalWrite(buzzerPin, HIGH);
+
+  myServo.write(90);           // Rotate servo back to closed
+  digitalWrite(greenPin, LOW); // Turn off green LED
+
+  // rotate the servo motor back to the initial position
+  myServo.write(180);
+  delay(300 * 3 + 600);
+  myServo.write(90);
+}
+
+void accessDenied()
+{
+  attemptCount++;
+  lcd.clear();
+  lcd.print("Access Denied");
+  digitalWrite(redPin, HIGH); // Turn on red LED
+  tone(buzzerPin, 1000, 100); // Play error sound
+  delay(100);
+  noTone(buzzerPin);
+  digitalWrite(buzzerPin, HIGH); // Turn off buzzer
+  digitalWrite(redPin, LOW);     // Turn off red LED
+
+  if (attemptCount >= 3)
+  {
+    lcd.clear();
+    lcd.print("Calling Police");
+    messedUp = true;
+    attemptCount = 0; // Reset attempt count after alarm
+    // policeAlarm();
+  }
+}
+
+bool checkEmergencyPassword()
+{
+  if (enteredPassword == emergencyPassword)
+  {
+    lcd.clear();
+    lcd.print("Emergency Code");
+    accessGranted();
+    return true;
+  }
+  return false;
+}
+
+// void policeAlarm()
+// {
+//   while (stopAlarm)
+//   {
+//     tone(buzzerPin, 1000, 300);
+//     delay(200);
+//     tone(buzzerPin, 500, 300);
+//     delay(200);
+//   }
+//   noTone(buzzerPin);
+//   digitalWrite(buzzerPin, HIGH); // Ensure buzzer is off after alarm
+// }
