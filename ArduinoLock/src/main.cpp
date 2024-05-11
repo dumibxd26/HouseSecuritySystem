@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 #include "./Keypad/Keypad.h"
-#include <Servo.h>
+#include "./LCD/display.h"
+#include "./Servo/Servo.h"
+#define RESET_PASSOWORD_TIME 5000
 
 // Keypad setup
 const int numRows = 4; // four rows
@@ -28,28 +29,30 @@ const int bluePin = 12;
 const int buzzerPin = 13;
 
 // I2C LCD Address and Initialization
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+Display lcd;
 
 // Servo motor configuration
 Servo myServo;
 const int servoPin = A0;
 
 // Password management
-const String correctPassword = "123";
+String correctPassword = "123";
 const String emergencyPassword = "000";
+const String adminPassword = "777";
 String enteredPassword = "";
 int attemptCount = 0;
 bool stopAlarm = false;
 bool messedUp = false;
+bool resettingPassword = false;
 int lastTimeKeyPressed = 0;
 int lastTimeAlarm1000 = 0;
 int lastTimeAlarm500 = 0;
 int lastTimeMessedUpKeyPressed = 0;
+int enteredAdminPassword = 0;
 
 // void policeAlarm();
 void accessGranted();
 void accessDenied();
-void openDoorWithTone();
 
 void setup()
 {
@@ -61,10 +64,7 @@ void setup()
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Enter Password:");
+  lcd.initialize();
 }
 
 void loop()
@@ -73,27 +73,89 @@ void loop()
   int currentTime = millis();
   if (key != '\0' && currentTime - lastTimeKeyPressed > 250 && !messedUp)
   {
-    lastTimeKeyPressed = currentTime;
-    // set this here for the following case:
-    // when the user enters the emergency code, the first time, te last key pressed for the password
-    // is considered as the first key of the emergency code, if we do this it will have the correct debounce
-    lastTimeMessedUpKeyPressed = currentTime;
-    enteredPassword += key;
-    lcd.clear();
-    lcd.print("Password: *");
-    lcd.print(enteredPassword.length());
-
-    if (enteredPassword.length() == 3)
+    if (key != keypad.getLastKeyPressed() && !resettingPassword)
     {
-      if (enteredPassword == correctPassword)
+      keypad.setLastKeyPressed(key);
+      lastTimeKeyPressed = currentTime;
+      // // set this here for the following case:
+      // // when the user enters the emergency code, the first time, te last key pressed for the password
+      // // is considered as the first key of the emergency code, if we do this it will have the correct debounce
+      // lastTimeMessedUpKeyPressed = currentTime;
+      enteredPassword += key;
+      lcd.clear();
+      lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
+      lcd.printMessage(ONE_LINE_MESSAGE, enteredPassword.c_str());
+
+      if (enteredPassword.length() == 3)
       {
-        accessGranted();
+        if (enteredPassword == correctPassword)
+        {
+          accessGranted();
+        }
+        else
+        {
+          accessDenied();
+          // to prevent the error mentioned above which's solutions was not that
+          key = '\0';
+        }
+        enteredPassword = ""; // Reset password entry
+      }
+    }
+    else if (key == 'D' && (resettingPassword || currentTime - lastTimeKeyPressed > RESET_PASSOWORD_TIME))
+    {
+      if (!resettingPassword)
+      {
+        resettingPassword = true;
+        enteredPassword = "";
+      }
+
+      enteredPassword += key;
+      lcd.clear();
+      if (enteredAdminPassword == 0)
+      {
+        lcd.printMessage(ONE_LINE_MESSAGE, "Enter Admin Password:");
       }
       else
       {
-        accessDenied();
+        lcd.printMessage(ONE_LINE_MESSAGE, "Enter New Password:");
       }
-      enteredPassword = ""; // Reset password entry
+      digitalWrite(redPin, HIGH);
+      digitalWrite(greenPin, HIGH);
+      digitalWrite(bluePin, LOW);
+
+      if (enteredPassword.length() == 3)
+      {
+        if (enteredAdminPassword == 0)
+        {
+          if (enteredPassword == adminPassword)
+          {
+            enteredAdminPassword = 1;
+            enteredPassword = "";
+            lcd.clear();
+            lcd.printMessage(ONE_LINE_MESSAGE, "Enter New Password:");
+            lcd.printMessage(ONE_LINE_MESSAGE, enteredPassword.c_str());
+          }
+          else
+          {
+            lcd.clear();
+            lcd.printMessage(ONE_LINE_MESSAGE, "Wrong Admin Password");
+            lcd.printMessage(ONE_LINE_MESSAGE, "Enter Admin Password:");
+            enteredPassword = "";
+          }
+        }
+        else
+        {
+          correctPassword = enteredPassword;
+          lcd.clear();
+          lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
+          enteredPassword = "";
+          resettingPassword = false;
+          digitalWrite(redPin, LOW);
+          digitalWrite(greenPin, LOW);
+          digitalWrite(bluePin, LOW);
+        }
+      }
+      delay(250);
     }
   }
 
@@ -113,7 +175,7 @@ void loop()
     if (key)
     {
       int currentTime = millis();
-      if (currentTime - lastTimeMessedUpKeyPressed > 250)
+      if (currentTime - lastTimeMessedUpKeyPressed > 250 && key != keypad.getLastKeyPressed())
       {
         Serial.println("Key: " + String(key));
         lastTimeMessedUpKeyPressed = currentTime;
@@ -138,7 +200,7 @@ void loop()
 void accessGranted()
 {
   lcd.clear();
-  lcd.print("Access Permitted");
+  lcd.printMessage(ONE_LINE_MESSAGE, "Access Granted");
 
   digitalWrite(greenPin, HIGH); // Turn on green LED
   myServo.write(0);             // Rotate servo to open
@@ -170,21 +232,25 @@ void accessDenied()
 {
   attemptCount++;
   lcd.clear();
-  lcd.print("Access Denied");
+  lcd.printMessage(ONE_LINE_MESSAGE, "Access Denied");
   digitalWrite(redPin, HIGH); // Turn on red LED
   tone(buzzerPin, 1000, 100); // Play error sound
   delay(100);
   noTone(buzzerPin);
   digitalWrite(buzzerPin, HIGH); // Turn off buzzer
   digitalWrite(redPin, LOW);     // Turn off red LED
+  delay(1000);
 
   if (attemptCount >= 3)
   {
     lcd.clear();
-    lcd.print("Calling Police");
+    lcd.printMessage(ONE_LINE_MESSAGE, "Call 911");
     messedUp = true;
     attemptCount = 0; // Reset attempt count after alarm
-    // policeAlarm();
+  }
+  else
+  {
+    lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
   }
 }
 
@@ -193,22 +259,9 @@ bool checkEmergencyPassword()
   if (enteredPassword == emergencyPassword)
   {
     lcd.clear();
-    lcd.print("Emergency Code");
+    lcd.printMessage(ONE_LINE_MESSAGE, "Enter Emergency Code");
     accessGranted();
     return true;
   }
   return false;
 }
-
-// void policeAlarm()
-// {
-//   while (stopAlarm)
-//   {
-//     tone(buzzerPin, 1000, 300);
-//     delay(200);
-//     tone(buzzerPin, 500, 300);
-//     delay(200);
-//   }
-//   noTone(buzzerPin);
-//   digitalWrite(buzzerPin, HIGH); // Ensure buzzer is off after alarm
-// }

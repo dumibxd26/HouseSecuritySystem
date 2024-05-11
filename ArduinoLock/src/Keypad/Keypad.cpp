@@ -66,5 +66,4 @@ void Keypad::printPressedKey(char key)
         Serial.println("Key: " + String(key));
         delay(250);
     }
-    // Add LCD functionality here if needed
 }
