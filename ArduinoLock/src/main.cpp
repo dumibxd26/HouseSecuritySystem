@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <SoftwareSerial.h>
 #include "./Keypad/Keypad.h"
 #include "./LCD/display.h"
 #include "./Servo/Servo.h"
@@ -17,6 +18,8 @@ const char *keys[] = {
     "456B",
     "789C",
     "*0#D"};
+
+SoftwareSerial ESPSerial(0, 1); // RX, TX
 
 // System States
 enum SystemState
@@ -55,6 +58,7 @@ String enteredPassword = "";
 int attemptCount = 0;
 bool stopAlarm = false;
 bool messedUp = false;
+bool messedUpReallyBad = false;
 bool resettingPassword = false;
 unsigned long long lastTimeKeyPressed = 0;
 unsigned long long lastTimeAlarm1000 = 0;
@@ -70,6 +74,7 @@ void accessDenied();
 void setup()
 {
   Serial.begin(9600);
+  ESPSerial.begin(9600);
   myServo.attach(servoPin);
   keypad.initialize();
   pinMode(buzzerPin, OUTPUT);
@@ -82,6 +87,22 @@ void setup()
 
 void loop()
 {
+
+  if (ESPSerial.available())
+  {
+    Serial.println("Data available");
+    String command = ESPSerial.readString(); // Read the string from the ESP32-CAM
+
+    if (command == "A1")
+    {
+      messedUp = messedUpReallyBad = true;
+    }
+    else if (command == "D0")
+    {
+      messedUp = messedUpReallyBad = false;
+    }
+  }
+
   char key = keypad.getKey();
   // int currentTime = millis();
 
@@ -103,7 +124,7 @@ void loop()
       tone(buzzerPin, 500, 300);
     }
 
-    if (key)
+    if (key && !messedUpReallyBad)
     {
       if (millis() - lastTimeKeyPressed > 250 && key != keypad.getLastKeyPressed())
       {

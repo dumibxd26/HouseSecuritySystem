@@ -3,3 +3,21 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+.env
+.env/
+
+# c# files
+*.csproj
+*.sln
+*.csproj.user
+*.suo
+*.user
+*.vspscc
+*.vssscc
+*.nupkg
+*.resharper
+*.resharper.user
+*.resharper.sln.dotSettings
+*.resharper.user.dotSettings
+*.sln.docstates

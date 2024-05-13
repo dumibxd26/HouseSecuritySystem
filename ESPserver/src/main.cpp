@@ -7,10 +7,15 @@
 #include "FS.h"
 #include "SPIFFS.h"
 #include "camera_routes.h"
+#include "arduino_routes.h"
+#include "utils.h"
+
+// load .env file
+std::unordered_map<std::string, std::string> credentials = readCredentials("../.env");
 
 // WiFi credentials
-const char *ssid = "Conacul Lui Dumi";
-const char *password = "vre!parol@";
+const char *ssid = "TP-Link_7BF8";
+const char *password = "38227875";
 
 unsigned int previousMillis = 0;
 
@@ -58,6 +63,7 @@ camera_config_t camera_config = {
 void setup()
 {
   Serial.begin(115200);
+  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   Serial.println("Starting up...");
 
   // Initialize filesystem
@@ -82,6 +88,8 @@ void setup()
   {
     delay(500);
     Serial.print(".");
+    Serial.println(ssid);
+    Serial.println(password);
   }
 
   Serial.println("\nWiFi connected");
@@ -142,12 +150,26 @@ void startServer()
       .handler = live_video_handler,
       .user_ctx = NULL};
 
+  httpd_uri_t activate_alarm_uri = {
+      .uri = "/activate_alarm",
+      .method = HTTP_GET,
+      .handler = activate_alarm_handler,
+      .user_ctx = NULL};
+
+  httpd_uri_t deactivate_alarm_uri = {
+      .uri = "/deactivate_alarm",
+      .method = HTTP_GET,
+      .handler = deactivate_alarm_handler,
+      .user_ctx = NULL};
+
   // Start the web server and register URI handlers
   if (httpd_start(&camera_httpd, &config) == ESP_OK)
   {
     httpd_register_uri_handler(camera_httpd, &index_uri);
     httpd_register_uri_handler(camera_httpd, &capture_uri);
     httpd_register_uri_handler(camera_httpd, &live_video_uri);
+    httpd_register_uri_handler(camera_httpd, &activate_alarm_uri);
+    httpd_register_uri_handler(camera_httpd, &deactivate_alarm_uri);
   }
 }
 
