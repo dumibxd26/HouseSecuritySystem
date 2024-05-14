@@ -19,19 +19,7 @@ const char *keys[] = {
     "789C",
     "*0#D"};
 
-SoftwareSerial ESPSerial(0, 1); // RX, TX
-
-// System States
-enum SystemState
-{
-  NORMAL,
-  ENTER_ADMIN,
-  PASSWORD_RESET,
-  EMERGENCY,
-  ACCESS_GRANTED,
-  ACCESS_DENIED
-};
-SystemState systemState = NORMAL;
+// SoftwareSerial ESPSerial(0, 1); // RX, TX
 
 Keypad keypad(numRows, numCols, rowPins, colPins, keys);
 
@@ -74,7 +62,7 @@ void accessDenied();
 void setup()
 {
   Serial.begin(9600);
-  ESPSerial.begin(9600);
+  // ESPSerial.begin(9600);
   myServo.attach(servoPin);
   keypad.initialize();
   pinMode(buzzerPin, OUTPUT);
@@ -88,20 +76,20 @@ void setup()
 void loop()
 {
 
-  if (ESPSerial.available())
-  {
-    Serial.println("Data available");
-    String command = ESPSerial.readString(); // Read the string from the ESP32-CAM
+  // if (ESPSerial.available())
+  // {
+  //   Serial.println("Data available");
+  //   String command = ESPSerial.readString(); // Read the string from the ESP32-CAM
 
-    if (command == "A1")
-    {
-      messedUp = messedUpReallyBad = true;
-    }
-    else if (command == "D0")
-    {
-      messedUp = messedUpReallyBad = false;
-    }
-  }
+  //   if (command == "A1")
+  //   {
+  //     messedUp = messedUpReallyBad = true;
+  //   }
+  //   else if (command == "D0")
+  //   {
+  //     messedUp = messedUpReallyBad = false;
+  //   }
+  // }
 
   char key = keypad.getKey();
   // int currentTime = millis();
@@ -143,7 +131,6 @@ void loop()
             accessGranted();
           }
           enteredPassword = ""; // Reset password entry
-          // keypad.setLastKeyPressed('\0');
         }
       }
     }
@@ -183,7 +170,6 @@ void loop()
           {
             enteredAdminPassword = 1;
             enteredPassword = "";
-            // keypad.setLastKeyPressed('\0');
             lcd.clear();
             lcd.printMessage(ONE_LINE_MESSAGE, "Enter New Password:");
             // lcd.printMessage(ONE_LINE_MESSAGE, enteredPassword.c_str());
@@ -196,7 +182,6 @@ void loop()
             lcd.clear();
             lcd.printMessage(ONE_LINE_MESSAGE, "Enter Admin Password:");
             enteredPassword = "";
-            // keypad.setLastKeyPressed('\0');
           }
         }
         else
@@ -205,7 +190,6 @@ void loop()
           lcd.clear();
           lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
           enteredPassword = "";
-          // keypad.setLastKeyPressed('\0');
           resettingPassword = false;
           enteredAdminPassword = 0;
           digitalWrite(redPin, LOW);
@@ -214,6 +198,8 @@ void loop()
           delay(500);
           lcd.clear();
           lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
+          // reset attempts after changing password error :)
+          attemptCount = 0;
         }
       }
       delay(250);
@@ -248,7 +234,6 @@ void loop()
           key = '\0';
         }
         enteredPassword = ""; // Reset password entry
-        // keypad.setLastKeyPressed('\0');
       }
     }
     else if (enteredPassword.length() < 2 && key == 'D' && keypad.getLastKeyPressed() == 'D' && millis() - lastTimeKeyPressed > RESET_PASSOWORD_TIME)
@@ -256,7 +241,6 @@ void loop()
       Serial.println(static_cast<unsigned long>(lastTimeKeyPressed));
       Serial.println("millis: " + String(millis()));
       enteredPassword = "";
-      // keypad.setLastKeyPressed('\0');
       lastTimeKeyPressed = millis();
       resettingPassword = true;
       lcd.clear();
