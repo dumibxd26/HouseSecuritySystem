@@ -14,8 +14,8 @@ steps:
     persistCredentials: true
 
   - script: |
-      git config --global user.email "you@example.com"
-      git config --global user.name "Your Name"
+      git config --global user.email "bogdan.dumitrescu02@stud.acs.upb.ro"
+      git config --global user.name "dumibxd26"
       git remote add azure https://bogdandumitrescu02@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
       git fetch azure
       git subtree push --prefix=CloudServer azure main
