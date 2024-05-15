@@ -1,0 +1,22 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - CloudServer/**
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - checkout: self
+    persistCredentials: true
+
+  - script: |
+      git config --global user.email "bogdan.dumitrescu02@stud.acs.upb.ro"
+      git config --global user.name "dumibxd"
+      git remote add azure https://bogdandumitrescu02@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
+      git fetch azure
+      git subtree push --prefix=CloudServer azure main
+    displayName: "Sync CloudServer Directory to Azure DevOps"
