@@ -19,6 +19,7 @@ steps:
       git remote remove azure || true
       git remote add azure https://$(System.AccessToken)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
       git fetch azure
+      git checkout main || git checkout -b main
       git pull --rebase azure main
       git subtree push --prefix=CloudServer azure main
       git push --force azure main
