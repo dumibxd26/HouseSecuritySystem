@@ -20,7 +20,7 @@ steps:
       git remote add azure https://$(System.AccessToken)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
       git fetch azure
       git pull --rebase azure main
-      git subtree push --prefix=CloudServer azure main
+      git subtree push --prefix=CloudServer azure main --force
     env:
       GIT_ASKPASS: echo
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
