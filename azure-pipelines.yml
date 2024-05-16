@@ -25,13 +25,24 @@ steps:
       git checkout main || git checkout -b main
       git pull --rebase github main
       git subtree split --prefix=CloudServer -b temp-branch
-      mkdir temp-dir
-      cd temp-dir
+
+      # Create a new temporary directory and initialize a new Git repository
+      mkdir ../temp-dir
+      cd ../temp-dir
       git init
       git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
+
+      # Fetch the latest changes from Azure DevOps and checkout the main branch
       git fetch azure
       git checkout -b main
-      cp -r ../CloudServer/* .
+
+      # Remove everything in the Azure DevOps repository
+      git rm -rf .
+
+      # Copy the contents of the CloudServer directory from the temp-branch
+      cp -r ../$(Build.SourcesDirectory)/CloudServer/* .
+
+      # Commit and push the changes to Azure DevOps
       git add .
       git commit -m "Keep only CloudServer directory"
       git push --force azure main
