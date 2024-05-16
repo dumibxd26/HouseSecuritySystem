@@ -14,13 +14,15 @@ steps:
     persistCredentials: true
 
   - script: |
-      git config --global user.email "your-email@example.com"
-      git config --global user.name "your-username"
-      git remote add github https://$(GITHUB_TOKEN)@github.com/your-github-username/your-github-repo.git
-      git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/your-azure-org/your-azure-project/_git/your-azure-repo
+      git config --global user.email "bogdan.dumitrescu02@stud.acs.upb.ro"
+      git config --global user.name "dumibxd26"
+      git remote remove github || true
+      git remote remove azure || true
+      git remote add github https://$(GITHUB_TOKEN)@github.com/dumibxd26/HouseSecuritySystem.git
+      git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HoseSecuritySystemCloud
       git fetch github
       git fetch azure
-      git checkout main
+      git checkout main || git checkout -b main
       git reset --hard github/main
       git push --force azure main
     env:
