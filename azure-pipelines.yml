@@ -7,7 +7,7 @@ trigger:
       - CloudServer/**
 
 pool:
-  name: "Default"
+  vmImage: "ubuntu-latest"
 
 steps:
   - checkout: self
@@ -25,7 +25,16 @@ steps:
       git checkout main || git checkout -b main
       git pull --rebase github main
       git subtree split --prefix=CloudServer -b temp-branch
-      git push azure temp-branch:main --force
+      mkdir temp-dir
+      cd temp-dir
+      git init
+      git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
+      git fetch azure
+      git checkout -b main
+      cp -r ../CloudServer/* .
+      git add .
+      git commit -m "Keep only CloudServer directory"
+      git push --force azure main
     env:
       GITHUB_TOKEN: $(System.AccessToken)
       AZURE_TOKEN: $(System.AccessToken)
