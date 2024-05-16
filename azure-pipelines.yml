@@ -17,21 +17,17 @@ steps:
       git config --global user.email "bogdan.dumitrescu02@stud.acs.upb.ro"
       git config --global user.name "dumibxd26"
 
-      # Initialize and configure a new repository to only keep CloudServer directory
       mkdir temp-repo
       cd temp-repo
       git init
       git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
 
-      # Fetch Azure repo and ensure we start from a clean state
       git fetch azure
       git checkout -b main
       git rm -rf . || true
 
-      # Copy CloudServer directory from the checked-out code
       cp -r $(Build.SourcesDirectory)/CloudServer/* .
 
-      # Commit and push the changes to Azure DevOps
       git add .
       git commit -m "Keep only CloudServer directory"
       git push --force azure main
