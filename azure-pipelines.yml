@@ -23,9 +23,10 @@ steps:
       git fetch github
       git fetch azure
       git checkout main || git checkout -b main
-      git reset --hard github/main
-      git push --force azure main
+      git pull --rebase github main
+      git subtree split --prefix=CloudServer -b temp-branch
+      git push azure temp-branch:main --force
     env:
       GITHUB_TOKEN: $(System.AccessToken)
       AZURE_TOKEN: $(System.AccessToken)
-    displayName: "Sync GitHub to Azure DevOps"
+    displayName: "Sync CloudServer Directory from GitHub to Azure DevOps"
