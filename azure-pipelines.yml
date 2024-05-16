@@ -19,7 +19,7 @@ steps:
       git remote remove github || true
       git remote remove azure || true
       git remote add github https://$(GITHUB_TOKEN)@github.com/dumibxd26/HouseSecuritySystem.git
-      git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HoseSecuritySystemCloud
+      git remote add azure https://$(AZURE_TOKEN)@dev.azure.com/bogdandumitrescu02/HouseSecuritySystemCloud/_git/HouseSecuritySystemCloud
       git fetch github
       git fetch azure
       git checkout main || git checkout -b main
