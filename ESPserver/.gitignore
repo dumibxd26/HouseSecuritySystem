@@ -21,3 +21,5 @@
 *.resharper.sln.dotSettings
 *.resharper.user.dotSettings
 *.sln.docstates
+
+WiFiCredentials.h

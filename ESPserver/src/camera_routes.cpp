@@ -120,3 +120,20 @@ esp_err_t live_video_handler(httpd_req_t *req)
     stop_live_video();
     return ESP_OK;
 }
+
+// send the distance continuously to the client while on this route
+// esp_err_t distance_handler(httpd_req_t *req)
+// {
+//     extern long distance;
+
+//     char distance_str[10];
+
+//     while (true)
+//     {
+//         sprintf(distance_str, "%ld", distance);
+//         httpd_resp_send_chunk(req, distance_str, strlen(distance_str));
+//         delay(500); // send the distance every second
+//     }
+
+//     return ESP_OK;
+// }

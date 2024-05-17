@@ -4,18 +4,17 @@
 #include "esp_timer.h"
 #include "img_converters.h"
 #include "Arduino.h"
-#include "FS.h"
-#include "SPIFFS.h"
 #include "camera_routes.h"
 #include "arduino_routes.h"
 #include "utils.h"
+#include "WiFiCredentials.h"
 
 // load .env file
-std::unordered_map<std::string, std::string> credentials = readCredentials("../.env");
+// std::unordered_map<std::string, std::string> credentials = readCredentials("../.env");
 
 // WiFi credentials
-const char *ssid = "TP-Link_7BF8";
-const char *password = "38227875";
+const char *ssid = SSID_HOME;
+const char *password = PASSWORD_HOME;
 
 unsigned int previousMillis = 0;
 
@@ -60,21 +59,17 @@ camera_config_t camera_config = {
     .jpeg_quality = 10,           // Adjusted JPEG quality
     .fb_count = 2};
 
+const int trig_pin = 13;
+const int echo_pin = 15;
+
 void setup()
 {
   Serial.begin(115200);
-  Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  // Serial2.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   Serial.println("Starting up...");
 
-  // Initialize filesystem
-  if (!SPIFFS.begin(true))
-  {
-    Serial.println("An error occurred while mounting SPIFFS");
-  }
-  else
-  {
-    Serial.println("SPIFFS mounted successfully");
-  }
+  pinMode(trig_pin, OUTPUT);
+  pinMode(echo_pin, INPUT);
 
   // Connect to WiFi with a static IP
   if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
@@ -115,6 +110,16 @@ void setup()
 
 void loop()
 {
+  // long distance;
+  // digitalWrite(trig_pin, LOW);
+  // delayMicroseconds(2);
+  // digitalWrite(trig_pin, HIGH);
+  // delayMicroseconds(10);
+  // digitalWrite(trig_pin, LOW);
+
+  // duration = pulseIn(echo_pin, HIGH);
+  // distance = duration * 0.034 / 2;
+
   // unsigned long currentMillis = millis();
 
   // if (currentMillis - previousMillis >= 5000)
@@ -125,6 +130,44 @@ void loop()
   //   Serial.println("http://" + String(WiFi.localIP()) + "/capture");
   //   Serial.println("http://" + String(WiFi.localIP()) + "/live_video");
   // }
+}
+
+esp_err_t distance_handler(httpd_req_t *req)
+{
+  // while (true) {
+  //   long distance;
+  //   digitalWrite(trig_pin, LOW);
+  //   delayMicroseconds(2);
+  //   digitalWrite(trig_pin, HIGH);
+  //   delayMicroseconds(10);
+  //   digitalWrite(trig_pin, LOW);
+
+  //   long duration = pulseIn(echo_pin, HIGH);
+  //   distance = duration * 0.034 / 2;
+
+  //   char distance_str[10];
+  //   sprintf(distance_str, "%ld", distance);
+
+  // }
+
+  // continuosly send the distance to the client
+  while (true)
+  {
+    long distance;
+    digitalWrite(trig_pin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trig_pin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trig_pin, LOW);
+
+    long duration = pulseIn(echo_pin, HIGH);
+    distance = duration * 0.034 / 2;
+
+    char distance_str[10];
+    sprintf(distance_str, "%ld", distance);
+
+    httpd_resp_send(req, distance_str, HTTPD_RESP_USE_STRLEN);
+  }
 }
 
 void startServer()
@@ -162,6 +205,12 @@ void startServer()
       .handler = deactivate_alarm_handler,
       .user_ctx = NULL};
 
+  httpd_uri_t distance_uri = {
+      .uri = "/distance",
+      .method = HTTP_GET,
+      .handler = distance_handler,
+      .user_ctx = NULL};
+
   // Start the web server and register URI handlers
   if (httpd_start(&camera_httpd, &config) == ESP_OK)
   {
@@ -170,6 +219,7 @@ void startServer()
     httpd_register_uri_handler(camera_httpd, &live_video_uri);
     httpd_register_uri_handler(camera_httpd, &activate_alarm_uri);
     httpd_register_uri_handler(camera_httpd, &deactivate_alarm_uri);
+    httpd_register_uri_handler(camera_httpd, &distance_uri);
   }
 }
 
@@ -182,7 +232,8 @@ static esp_err_t index_handler(httpd_req_t *req)
                          "<h1>ESP32-CAM Capture</h1>"
                          "<p>Click the button below to capture images or stream live video.</p>"
                          "<a href=\"/capture\"><button>Capture and View Images</button></a><br/><br/>"
-                         "<a href=\"/live_video\"><button>Stream Live Video</button></a>"
+                         "<a href=\"/live_video\"><button>Stream Live Video</button></a><br/><br/>"
+                         "<a href=\"/distance\"><button>Get Distance</button></a><br/><br/>"
                          "</body>"
                          "</html>";
   httpd_resp_set_type(req, "text/html");                        // Set content type as HTML
