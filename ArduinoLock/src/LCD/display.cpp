@@ -29,6 +29,16 @@ void Display::printMessage(bool type, const char *message, const char *second_li
     }
 }
 
+void Display::noBacklight()
+{
+    lcd.noBacklight();
+}
+
+void Display::backlight()
+{
+    lcd.backlight();
+}
+
 void Display::clear()
 {
     lcd.clear();

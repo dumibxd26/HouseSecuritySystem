@@ -11,5 +11,7 @@ public:
     Display();
     void initialize();
     void printMessage(bool type, const char *message, const char *second_line_message = NULL);
+    void noBacklight();
+    void backlight();
     void clear();
 };
