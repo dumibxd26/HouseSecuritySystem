@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "n6ESc/k7CeUx/oE8qY46U9swboUk8rudJtLp9l+rKSNRCBYYyCQG/jx/t1FOzRCjIqVx2azduUWH9fAE/ZYIXg==",
+  "dgSpecHash": "dC0Cexwvgg+zcsgi/HI8xjlU9+n+cF+JAp+UxSWW0RdwI8Ju0DvTyfLy/8OyPgNN5ju67OH548c9h/Y8RtsKaQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\bdumi\\Desktop\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
+  "projectFilePath": "C:\\Users\\bdumi\\Desktop\\PM\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bdumi\\.nuget\\packages\\microsoft.aspnetcore.openapi\\8.0.4\\microsoft.aspnetcore.openapi.8.0.4.nupkg.sha512",
     "C:\\Users\\bdumi\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",

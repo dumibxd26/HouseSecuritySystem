@@ -13,17 +13,17 @@
 // std::unordered_map<std::string, std::string> credentials = readCredentials("../.env");
 
 // WiFi credentials
-const char *ssid = SSID_HOME;
-const char *password = PASSWORD_HOME;
+const char *ssid = SSID_PHONE;
+const char *password = PASSWORD_PHONE;
 
 unsigned int previousMillis = 0;
 
 // Static IP configuration
-IPAddress local_IP(192, 168, 1, 50); // IP address
-IPAddress gateway(192, 168, 1, 1);   // gateway address
-IPAddress subnet(255, 255, 255, 0);  // Subnet mask
-IPAddress primaryDNS(8, 8, 8, 8);    // Primary DNS server
-IPAddress secondaryDNS(8, 8, 4, 4);  // Secondary DNS server
+// IPAddress local_IP(192, 168, 1, 50); // IP address
+// IPAddress gateway(192, 168, 1, 1);   // gateway address
+// IPAddress subnet(255, 255, 255, 0);  // Subnet mask
+// IPAddress primaryDNS(8, 8, 8, 8);    // Primary DNS server
+// IPAddress secondaryDNS(8, 8, 4, 4);  // Secondary DNS server
 
 httpd_handle_t camera_httpd = NULL;
 
@@ -64,10 +64,10 @@ void setup()
   Serial.begin(9600);
 
   // Connect to WiFi with a static IP
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
-  {
-    Serial.println("STA Failed to configure");
-  }
+  // if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
+  // {
+  //   Serial.println("STA Failed to configure");
+  // }
 
   WiFi.begin(ssid, password);
   // serial.println("Attempting to connect to WiFi network...");
@@ -150,6 +150,12 @@ void startServer()
       .handler = deactivate_alarm_handler,
       .user_ctx = NULL};
 
+  httpd_uri_t change_password_uri = {
+      .uri = "/change_password",
+      .method = HTTP_POST,
+      .handler = change_password_handler,
+      .user_ctx = NULL};
+
   // Start the web server and register URI handlers
   if (httpd_start(&camera_httpd, &config) == ESP_OK)
   {
@@ -158,6 +164,7 @@ void startServer()
     httpd_register_uri_handler(camera_httpd, &live_video_uri);
     httpd_register_uri_handler(camera_httpd, &activate_alarm_uri);
     httpd_register_uri_handler(camera_httpd, &deactivate_alarm_uri);
+    httpd_register_uri_handler(camera_httpd, &change_password_uri);
   }
 }
 

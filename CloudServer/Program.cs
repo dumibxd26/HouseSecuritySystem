@@ -39,13 +39,14 @@ namespace SimpleRestAPI
                                         <a href=""/live_video""><button>View Live Video</button></a><br/><br/>
                                         <a href=""/activate_alarm""><button>Activate Alarm</button></a><br/><br/>
                                         <a href=""/""><button>Allow Access</button></a><br/><br/>
+                                        <a href=""/change_password_page""><button>Change Password</button></a><br/><br/>
                                     </body>
                                     </html>", System.Text.Encoding.UTF8);
                             });
 
                             endpoints.MapGet("/capture", async context =>
                             {
-                                var imageUrl = "http://192.168.1.50/capture";
+                                var imageUrl = "http://192.168.43.2/capture";
                                 var client = new HttpClient();
                                 var response = await client.GetAsync(imageUrl);
                                 if (response.IsSuccessStatusCode)
@@ -110,14 +111,14 @@ namespace SimpleRestAPI
                             endpoints.MapGet("/live_video", context =>
                             {
                                 // Redirect the user to the live video URL
-                                context.Response.Redirect("http://192.168.1.50/live_video");
+                                context.Response.Redirect("http://192.168.43.2/live_video");
                                 return Task.CompletedTask;
                             });
 
                             endpoints.MapGet("/activate_alarm", async context =>
                             {
                                 var client = new HttpClient();
-                                var response = await client.GetAsync("http://192.168.1.50/activate_alarm");
+                                var response = await client.GetAsync("http://192.168.43.2/activate_alarm");
                                 if (response.IsSuccessStatusCode)
                                 {
                                     await context.Response.WriteAsync(@"
@@ -150,7 +151,7 @@ namespace SimpleRestAPI
                             endpoints.MapGet("/deactivate_alarm", async context =>
                             {
                                 var client = new HttpClient();
-                                var response = await client.GetAsync("http://192.168.1.50/deactivate_alarm");
+                                var response = await client.GetAsync("http://192.168.43.2/deactivate_alarm");
                                 if (response.IsSuccessStatusCode)
                                 {
                                     // redirect to home page
@@ -167,6 +168,45 @@ namespace SimpleRestAPI
                                         </html>", System.Text.Encoding.UTF8);
                                 }
                             });
+
+                            // post route to esp32-cam with a json that contains an object with the key new_password
+
+                            endpoints.MapGet("/change_password_page", async context =>
+                            {
+                                await context.Response.WriteAsync(@"
+                                    <html>
+                                    <body>
+                                        <h1>Change Password</h1>
+                                        <form id=""changePasswordForm"">
+                                            <label for=""old_password"">Old Password:</label><br>
+                                            <input type=""password"" id=""old_password"" name=""old_password""><br><br>
+                                            <label for=""new_password"">New Password:</label><br>
+                                            <input type=""password"" id=""new_password"" name=""new_password""><br><br>
+                                            <input type=""submit"" value=""Submit"">
+                                        </form>
+                                        <script>
+                                            document.getElementById('changePasswordForm').addEventListener('submit', async function(event) {
+                                                event.preventDefault();
+                                                
+                                                // const oldPassword = document.getElementById('old_password').value;
+                                                const newPassword = document.getElementById('new_password').value;
+                                                
+                                                const response = await fetch('http://192.168.43.2/change_password', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({ new_password: newPassword })
+                                                });
+                                                
+                                                const result = await response.json();
+                                                alert(result.message);
+                                            });
+                                        </script>
+                                    </body>
+                                    </html>", System.Text.Encoding.UTF8);
+                            });
+
                         });
                     });
                 });

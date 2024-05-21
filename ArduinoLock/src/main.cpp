@@ -125,6 +125,20 @@ void loop()
       lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
       enteredPassword = "";
     }
+    else if (message.startsWith("newPassword"))
+    {
+      correctPassword = message.substring(13);
+      lcd.clear();
+      lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
+      enteredPassword = "";
+      resettingPassword = false;
+      enteredAdminPassword = 0;
+      attemptCount = 0;
+      setLedColor(false, false, false);
+      delay(500);
+      lcd.clear();
+      lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
+    }
   }
 
   // Check distance periodically
