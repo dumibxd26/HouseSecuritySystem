@@ -49,5 +49,9 @@ esp_err_t change_password_handler(httpd_req_t *req)
 
     const char *resp_str = "{\"message\":\"Password changed successfully\"}";
     httpd_resp_set_type(req, "application/json");
+
+    // send the new password to the Arduino
+    Serial.println("newPassword " + String(password));
+
     return httpd_resp_send(req, resp_str, strlen(resp_str));
 }

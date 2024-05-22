@@ -127,7 +127,7 @@ void loop()
     }
     else if (message.startsWith("newPassword"))
     {
-      correctPassword = message.substring(13);
+      correctPassword = message.substring(12);
       lcd.clear();
       lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
       enteredPassword = "";

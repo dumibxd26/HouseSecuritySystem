@@ -62,6 +62,8 @@ camera_config_t camera_config = {
 void setup()
 {
   Serial.begin(9600);
+  // turn the bluetooth off optimisation
+  btStop();
 
   // Connect to WiFi with a static IP
   // if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
