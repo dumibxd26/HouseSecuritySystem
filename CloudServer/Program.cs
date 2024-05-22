@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SimpleRestAPI
@@ -21,9 +24,26 @@ namespace SimpleRestAPI
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureServices(services =>
+                    {
+                        // Configure CORS
+                        services.AddCors(options =>
+                        {
+                            options.AddPolicy("AllowAllOrigins", builder =>
+                            {
+                                builder.AllowAnyOrigin()
+                                       .AllowAnyMethod()
+                                       .AllowAnyHeader();
+                            });
+                        });
+                    });
+
                     webBuilder.Configure(app =>
                     {
                         app.UseRouting();
+
+                        // Use the CORS policy
+                        app.UseCors("AllowAllOrigins");
 
                         app.UseEndpoints(endpoints =>
                         {
@@ -35,6 +55,7 @@ namespace SimpleRestAPI
                             endpoints.MapGet("/deactivate_alarm", DeactivateAlarmHandler);
                             endpoints.MapGet("/allow_access", AllowAccessHandler);
                             endpoints.MapGet("/change_password_page", ChangePasswordPageHandler);
+                            endpoints.MapPost("/change_password", ChangePasswordHandler);
                         });
                     });
                 });
@@ -271,31 +292,37 @@ namespace SimpleRestAPI
                 </head>
                 <body>
                     <h1>Change Password</h1>
-                    <form id=""changePasswordForm"">
-                        <label for=""old_password"">Old Password:</label><br>
-                        <input type=""password"" id=""old_password"" name=""old_password""><br><br>
+                    <form id=""changePasswordForm"" method=""post"" action=""/change_password"">
                         <label for=""new_password"">New Password:</label><br>
                         <input type=""password"" id=""new_password"" name=""new_password""><br><br>
                         <input type=""submit"" value=""Submit"">
                     </form>
-                    <script>
-                        document.getElementById('changePasswordForm').addEventListener('submit', async function(event) {
-                            event.preventDefault();
-                            
-                            const newPassword = document.getElementById('new_password').value;
-                            
-                            const response = await fetch('http://192.168.43.2/change_password', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ new_password: newPassword })
-                            });
-                            
-                            const result = await response.json();
-                            alert(result.message);
-                        });
-                    </script>
+                </body>
+                </html>", System.Text.Encoding.UTF8);
+        }
+
+        private static async Task ChangePasswordHandler(HttpContext context)
+        {
+            var form = context.Request.Form;
+            var newPassword = form["new_password"];
+
+            var client = new HttpClient();
+            var content = new StringContent(JsonSerializer.Serialize(new { new_password = newPassword }), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("http://192.168.43.2/change_password", content);
+
+            var result = await response.Content.ReadAsStringAsync();
+            await context.Response.WriteAsync(@"
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; }
+                        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>" + (response.IsSuccessStatusCode ? "Password Changed Successfully" : "Failed to Change Password") + @"</h1>
+                    <p>" + result + @"</p>
+                    <a href=""/""><button>Home</button></a>
                 </body>
                 </html>", System.Text.Encoding.UTF8);
         }

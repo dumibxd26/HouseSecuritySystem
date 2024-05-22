@@ -158,6 +158,12 @@ void startServer()
       .handler = change_password_handler,
       .user_ctx = NULL};
 
+  httpd_uri_t allow_access_uri = {
+      .uri = "/allow_access",
+      .method = HTTP_GET,
+      .handler = allow_access_handler,
+      .user_ctx = NULL};
+
   // Start the web server and register URI handlers
   if (httpd_start(&camera_httpd, &config) == ESP_OK)
   {
@@ -167,6 +173,7 @@ void startServer()
     httpd_register_uri_handler(camera_httpd, &activate_alarm_uri);
     httpd_register_uri_handler(camera_httpd, &deactivate_alarm_uri);
     httpd_register_uri_handler(camera_httpd, &change_password_uri);
+    httpd_register_uri_handler(camera_httpd, &allow_access_uri);
   }
 }
 

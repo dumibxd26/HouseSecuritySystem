@@ -16,5 +16,6 @@
 esp_err_t activate_alarm_handler(httpd_req_t *req);
 esp_err_t deactivate_alarm_handler(httpd_req_t *req);
 esp_err_t change_password_handler(httpd_req_t *req);
+esp_err_t allow_access_handler(httpd_req_t *req);
 
 #endif

@@ -100,10 +100,23 @@ void setup()
 
 void loop()
 {
+  // Check distance periodically
+  if (millis() - lastDistanceCheck > 500)
+  {
+    lastDistanceCheck = millis();
+    checkDistance();
+  }
+
+  // If the system is not active, do not proceed further
+  if (!systemActive)
+  {
+    return;
+  }
+
   if (Serial.available() > 0)
   {
     String message = Serial.readString();
-    Serial.println(message);
+    // Serial.println(message);
     if (message.startsWith("Aon"))
     {
       lcd.clear();
@@ -127,9 +140,12 @@ void loop()
     }
     else if (message.startsWith("newPassword"))
     {
-      correctPassword = message.substring(12);
+      // noticed when writing to the lcd the password
+      correctPassword = message.substring(message.indexOf("[") + 2, message.indexOf("]") - 1);
+      Serial.println(message);
       lcd.clear();
-      lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
+      // lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
+      lcd.printMessage(TWO_LINE_MESSAGE, "Password Changed", correctPassword.c_str());
       enteredPassword = "";
       resettingPassword = false;
       enteredAdminPassword = 0;
@@ -139,19 +155,10 @@ void loop()
       lcd.clear();
       lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
     }
-  }
-
-  // Check distance periodically
-  if (millis() - lastDistanceCheck > 500)
-  {
-    lastDistanceCheck = millis();
-    checkDistance();
-  }
-
-  // If the system is not active, do not proceed further
-  if (!systemActive)
-  {
-    return;
+    else if (message.startsWith("allowAccess"))
+    {
+      accessGranted();
+    }
   }
 
   // Handle police alarm if active
@@ -189,7 +196,7 @@ void loop()
   }
 
   // Deactivate the system if the door is not opened within 60 seconds
-  if (millis() - activationTime >= DEACTIVATION_TIME && !policeAlarmActive)
+  if (millis() - activationTime >= DEACTIVATION_TIME && !policeAlarmActive && systemActive && !resettingPassword && !distanceDetected)
   {
     deactivateSystem();
   }

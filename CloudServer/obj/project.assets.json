@@ -3328,23 +3328,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\bogda\\.nuget\\packages\\": {},
-    "D:\\VStudioPacks\\NuGetPackages": {}
+    "C:\\Users\\bdumi\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bogda\\OneDrive\\Desktop\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
+      "projectUniqueName": "C:\\Users\\bdumi\\Desktop\\PM\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
       "projectName": "CloudServer",
-      "projectPath": "C:\\Users\\bogda\\OneDrive\\Desktop\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
-      "packagesPath": "C:\\Users\\bogda\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bogda\\OneDrive\\Desktop\\HouseSecuritySystem\\CloudServer\\obj\\",
+      "projectPath": "C:\\Users\\bdumi\\Desktop\\PM\\HouseSecuritySystem\\CloudServer\\CloudServer.csproj",
+      "packagesPath": "C:\\Users\\bdumi\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\bdumi\\Desktop\\PM\\HouseSecuritySystem\\CloudServer\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "D:\\VStudioPacks\\NuGetPackages"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\bogda\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\bdumi\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -3401,24 +3401,6 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.1, 8.0.1]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[8.0.1, 8.0.1]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.1, 8.0.1]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.1, 8.0.1]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.AspNetCore.App": {
             "privateAssets": "none"
@@ -3427,7 +3409,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-preview.2.24157.14/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.205/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

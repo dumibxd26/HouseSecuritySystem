@@ -2,15 +2,17 @@
 
 esp_err_t activate_alarm_handler(httpd_req_t *req)
 {
-    Serial.println("Aon"); // Send 'D1' to Arduino for activation
+    Serial.println("Aon");
     return httpd_resp_send(req, "Alarm activated", HTTPD_RESP_USE_STRLEN);
 }
 
 esp_err_t deactivate_alarm_handler(httpd_req_t *req)
 {
-    Serial.println("Aoff"); // Send 'D0' to Arduino for deactivation
+    Serial.println("Aoff");
     return httpd_resp_send(req, "Alarm deactivated", HTTPD_RESP_USE_STRLEN);
 }
+
+#include "cJSON.h"
 
 esp_err_t change_password_handler(httpd_req_t *req)
 {
@@ -35,15 +37,23 @@ esp_err_t change_password_handler(httpd_req_t *req)
     }
 
     cJSON *new_password = cJSON_GetObjectItem(root, "new_password");
-    if (new_password == NULL || !cJSON_IsString(new_password))
+    if (new_password == NULL)
     {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "new_password key missing or not a string");
+        Serial.println("new_password key not found");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "new_password key missing");
         cJSON_Delete(root);
         return ESP_FAIL;
     }
 
-    const char *password = new_password->valuestring;
-    Serial.printf("New password: %s\n", password); // Handle the new password here
+    // Treat the value as a string and check its length
+    const char *password = cJSON_IsString(new_password) ? new_password->valuestring : cJSON_PrintUnformatted(new_password);
+    if (strlen(password) <= 3)
+    {
+        Serial.println("new_password is too short");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "new_password must be longer than 3 characters");
+        cJSON_Delete(root);
+        return ESP_FAIL;
+    }
 
     cJSON_Delete(root);
 
@@ -54,4 +64,10 @@ esp_err_t change_password_handler(httpd_req_t *req)
     Serial.println("newPassword " + String(password));
 
     return httpd_resp_send(req, resp_str, strlen(resp_str));
+}
+
+esp_err_t allow_access_handler(httpd_req_t *req)
+{
+    Serial.println("allowAccess");
+    return httpd_resp_send(req, "Access allowed", HTTPD_RESP_USE_STRLEN);
 }
