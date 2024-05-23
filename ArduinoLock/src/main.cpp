@@ -43,6 +43,7 @@ const int servoPin = A0;
 // Ultrasonic Sensor pins
 const int trigPin = A1;
 const int echoPin = A2;
+const int esp32CamPin = A3;
 unsigned long duration;
 int distance;
 const int distanceThreshold = 10; // Set distance threshold (in cm) for detection
@@ -93,6 +94,11 @@ void setup()
   // Ultrasonic Sensor setup
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
+  pinMode(esp32CamPin, OUTPUT);
+
+  digitalWrite(echoPin, HIGH);
+
+  digitalWrite(esp32CamPin, LOW);
 
   // Initially deactivate the system
   deactivateSystem();
@@ -142,7 +148,6 @@ void loop()
     {
       // noticed when writing to the lcd the password
       correctPassword = message.substring(message.indexOf("[") + 2, message.indexOf("]") - 1);
-      Serial.println(message);
       lcd.clear();
       // lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
       lcd.printMessage(TWO_LINE_MESSAGE, "Password Changed", correctPassword.c_str());
@@ -491,7 +496,10 @@ void checkDistance()
     distanceDetected = true;
     if (!previousDistanceDetected) // If it was not previously detected
     {
-      Serial.println("start"); // Send message to ESP32-CAM
+      // Serial.println("start"); // Send message to ESP32-CAM
+      digitalWrite(esp32CamPin, HIGH);
+      delay(1000);
+      digitalWrite(esp32CamPin, LOW);
     }
   }
   else

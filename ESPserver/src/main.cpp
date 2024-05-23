@@ -8,30 +8,25 @@
 #include "arduino_routes.h"
 #include "utils.h"
 #include "WiFiCredentials.h"
-
-// load .env file
-// std::unordered_map<std::string, std::string> credentials = readCredentials("../.env");
+#include "esp_wifi.h"
+#include "esp_bt.h"
 
 // WiFi credentials
 const char *ssid = SSID_PHONE;
 const char *password = PASSWORD_PHONE;
 
-unsigned int previousMillis = 0;
+// GPIO pin for flash LED
+#define FLASH_GPIO_PIN 4
+#define WAKEUP_PIN GPIO_NUM_12 // Use GPIO 12 for wakeup
 
-// Static IP configuration
-// IPAddress local_IP(192, 168, 1, 50); // IP address
-// IPAddress gateway(192, 168, 1, 1);   // gateway address
-// IPAddress subnet(255, 255, 255, 0);  // Subnet mask
-// IPAddress primaryDNS(8, 8, 8, 8);    // Primary DNS server
-// IPAddress secondaryDNS(8, 8, 4, 4);  // Secondary DNS server
-
+// Handle for the HTTP server
 httpd_handle_t camera_httpd = NULL;
 
 // Function prototypes
 void startServer();
 static esp_err_t index_handler(httpd_req_t *req);
-
-// GPIO pin for flash LED
+void startWiFi();
+void stopWiFi();
 
 // Camera configuration
 camera_config_t camera_config = {
@@ -55,35 +50,18 @@ camera_config_t camera_config = {
     .ledc_timer = LEDC_TIMER_0,
     .ledc_channel = LEDC_CHANNEL_0,
     .pixel_format = PIXFORMAT_JPEG,
-    .frame_size = FRAMESIZE_SVGA, // Set to VGA (640x480) for smaller images
-    .jpeg_quality = 10,           // Adjusted JPEG quality
+    .frame_size = FRAMESIZE_SVGA,
+    .jpeg_quality = 10,
     .fb_count = 2};
+
+unsigned long wifiStartMillis = 0;
+bool wifiConnected = false;
 
 void setup()
 {
   Serial.begin(9600);
-  // turn the bluetooth off optimisation
+  // Turn off Bluetooth for optimization
   btStop();
-
-  // Connect to WiFi with a static IP
-  // if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
-  // {
-  //   Serial.println("STA Failed to configure");
-  // }
-
-  WiFi.begin(ssid, password);
-  // serial.println("Attempting to connect to WiFi network...");
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-    // serial.println(ssid);
-    // serial.println(password);
-  }
-
-  Serial.println("\nWiFi connected");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
 
   // Initialize flash GPIO pin
   pinMode(FLASH_GPIO_PIN, OUTPUT);
@@ -93,28 +71,57 @@ void setup()
   esp_err_t err = esp_camera_init(&camera_config);
   if (err != ESP_OK)
   {
-    // Serial.printf("Camera init failed with error 0x%x\n", err);
     return;
   }
 
-  // Start the web server
-  startServer();
-  Serial.println("Camera Ready! Use 'http://" + String(WiFi.localIP()) + "/' to connect");
+  // Configure GPIO12 as input
+  pinMode(WAKEUP_PIN, INPUT);
+
+  // Start WiFi and web server
+  // startWiFi();
+  // startServer();
 }
 
 void loop()
 {
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= 5000)
+  // If GPIO12 is LOW, reconnect to WiFi and start the timer
+  if (digitalRead(WAKEUP_PIN) == HIGH)
   {
-    previousMillis = currentMillis;
-    Serial.println("Routes:");
-    Serial.println("http://" + String(WiFi.localIP()) + "/");
-    Serial.println("http://" + String(WiFi.localIP()) + "/capture");
-    Serial.println("http://" + String(WiFi.localIP()) + "/live_video");
+    // start the led
+    digitalWrite(FLASH_GPIO_PIN, HIGH);
+
+    if (!wifiConnected)
+    {
+      startWiFi();
+      startServer();
+      wifiConnected = true;
+      wifiStartMillis = millis();
+    }
   }
+
+  // If 100 seconds have passed since last activity, disconnect from WiFi
+  if (wifiConnected && (millis() - wifiStartMillis > 100000))
+  {
+    stopWiFi();
+    wifiConnected = false;
+  }
+}
+
+void startWiFi()
+{
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+  }
+}
+
+void stopWiFi()
+{
+  // Disconnect from WiFi
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
 }
 
 void startServer()
