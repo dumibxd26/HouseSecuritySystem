@@ -7,8 +7,8 @@
 #include "./Servo/Servo.h"
 
 #define RESET_PASSWORD_TIME 5000
-#define ACTIVATION_DISTANCE 10
-#define DEACTIVATION_TIME 60000 // 60 seconds
+#define ACTIVATION_DISTANCE 30
+#define DEACTIVATION_TIME 120000 // 60 seconds
 
 // Keypad setup
 const int numRows = 4; // four rows
@@ -43,7 +43,6 @@ const int servoPin = A0;
 // Ultrasonic Sensor pins
 const int trigPin = A1;
 const int echoPin = A2;
-const int esp32CamPin = A3;
 unsigned long duration;
 int distance;
 const int distanceThreshold = 10; // Set distance threshold (in cm) for detection
@@ -94,11 +93,6 @@ void setup()
   // Ultrasonic Sensor setup
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-  pinMode(esp32CamPin, OUTPUT);
-
-  digitalWrite(echoPin, HIGH);
-
-  digitalWrite(esp32CamPin, LOW);
 
   // Initially deactivate the system
   deactivateSystem();
@@ -148,6 +142,7 @@ void loop()
     {
       // noticed when writing to the lcd the password
       correctPassword = message.substring(message.indexOf("[") + 2, message.indexOf("]") - 1);
+      Serial.println(message);
       lcd.clear();
       // lcd.printMessage(ONE_LINE_MESSAGE, "Password Changed");
       lcd.printMessage(TWO_LINE_MESSAGE, "Password Changed", correctPassword.c_str());
@@ -181,30 +176,32 @@ void loop()
   // Handle keypad input
   char key = keypad.getKey();
 
-  if (key == '\0')
+  // if (key == '\0')
+  // {
+  //   return;
+  // }
+
+  // if (millis() - lastTimeKeyPressed < 250)
+  // {
+  //   return;
+  // }
+  if (key != '\0' && millis() - lastTimeKeyPressed > 250)
   {
-    return;
+    if (resettingPassword)
+    {
+      handlePasswordReset(key);
+    }
+    else
+    {
+      handlePasswordEntry(key);
+    }
   }
 
-  if (millis() - lastTimeKeyPressed < 250)
-  {
-    return;
-  }
-
-  if (resettingPassword)
-  {
-    handlePasswordReset(key);
-  }
-  else
-  {
-    handlePasswordEntry(key);
-  }
-
-  // Deactivate the system if the door is not opened within 60 seconds
-  if (millis() - activationTime >= DEACTIVATION_TIME && !policeAlarmActive && systemActive && !resettingPassword && !distanceDetected)
-  {
-    deactivateSystem();
-  }
+  // // Deactivate the system if the door is not opened within 60 seconds
+  // if (millis() - activationTime >= DEACTIVATION_TIME && !policeAlarmActive && systemActive && !resettingPassword && !distanceDetected && enteredPassword == "")
+  // {
+  //   deactivateSystem();
+  // }
 }
 
 void handlePasswordReset(char key)
@@ -350,12 +347,8 @@ void handlePoliceAlarmKeypad(char key)
         delay(1000);
         lcd.clear();
         lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
-        enteredPassword = "";
       }
-      else
-      {
-        enteredPassword = "";
-      }
+      enteredPassword = "";
     }
     delay(250);
   }
@@ -372,6 +365,7 @@ void accessGranted()
   tone(buzzerPin, 800, 300);
   delay(300);
   noTone(buzzerPin);
+  myServo.write(90);
   tone(buzzerPin, 1000, 300);
   delay(300);
   noTone(buzzerPin);
@@ -383,12 +377,11 @@ void accessGranted()
   noTone(buzzerPin);
   digitalWrite(buzzerPin, HIGH);
 
-  myServo.write(90);
   delay(5000);
   digitalWrite(greenPin, LOW);
 
   myServo.write(180);
-  delay(300 * 3 + 600);
+  delay(325);
   myServo.write(90);
 
   lcd.clear();
@@ -484,9 +477,11 @@ void checkDistance()
       lcd.clear();
       lcd.printMessage(ONE_LINE_MESSAGE, "Enter Password:");
       lcd.backlight(); // Turn on the LCD backlight
+      wakeUp();
     }
   }
-  else if (systemActive && (millis() - activationTime >= DEACTIVATION_TIME) && !policeAlarmActive)
+  // Deactivate the system if the door is not opened within 120 seconds
+  if (millis() - activationTime >= DEACTIVATION_TIME && !policeAlarmActive && systemActive && !resettingPassword && !distanceDetected && enteredPassword == "")
   {
     deactivateSystem();
   }
@@ -496,10 +491,7 @@ void checkDistance()
     distanceDetected = true;
     if (!previousDistanceDetected) // If it was not previously detected
     {
-      // Serial.println("start"); // Send message to ESP32-CAM
-      digitalWrite(esp32CamPin, HIGH);
-      delay(1000);
-      digitalWrite(esp32CamPin, LOW);
+      Serial.println("start"); // Send message to ESP32-CAM
     }
   }
   else

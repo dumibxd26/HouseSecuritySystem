@@ -120,3 +120,20 @@ esp_err_t live_video_handler(httpd_req_t *req)
     stop_live_video();
     return ESP_OK;
 }
+
+esp_err_t check_movement_handler(httpd_req_t *req)
+{
+
+    extern bool is_arduino_active;
+
+    if (is_arduino_active)
+    {
+        httpd_resp_send(req, "true", 4);
+        return ESP_OK;
+    }
+    else
+    {
+        httpd_resp_send(req, "false", 5);
+        return ESP_FAIL;
+    }
+}
