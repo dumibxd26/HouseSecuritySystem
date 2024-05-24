@@ -56,6 +56,7 @@ namespace SimpleRestAPI
                             endpoints.MapGet("/allow_access", AllowAccessHandler);
                             endpoints.MapGet("/change_password_page", ChangePasswordPageHandler);
                             endpoints.MapPost("/change_password", ChangePasswordHandler);
+                            endpoints.MapGet("/check_movement", CheckMovementHandler);
                         });
                     });
                 });
@@ -63,25 +64,49 @@ namespace SimpleRestAPI
         private static async Task HomeHandler(HttpContext context)
         {
             await context.Response.WriteAsync(@"
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; text-align: center; }
-                        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>House Security Alarm</h1>
-                    <p>Choose an action.</p>
-                    <a href=""/capture""><button>Capture Image</button></a><br/><br/>
-                    <a href=""/show""><button>View Captured Image</button></a><br/><br/>
-                    <a href=""/live_video""><button>View Live Video</button></a><br/><br/>
-                    <a href=""/activate_alarm""><button>Activate Alarm</button></a><br/><br/>
-                    <a href=""/allow_access""><button>Allow Access</button></a><br/><br/>
-                    <a href=""/change_password_page""><button>Change Password</button></a><br/><br/>
-                </body>
-                </html>", System.Text.Encoding.UTF8);
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; }
+                    button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+                </style>
+            </head>
+            <body>
+                <h1>House Security Alarm</h1>
+                <p>Choose an action.</p>
+                <a href=""/capture""><button>Capture Image</button></a><br/><br/>
+                <a href=""/show""><button>View Captured Image</button></a><br/><br/>
+                <a href=""/live_video""><button>View Live Video</button></a><br/><br/>
+                <a href=""/activate_alarm""><button>Activate Alarm</button></a><br/><br/>
+                <a href=""/allow_access""><button>Allow Access</button></a><br/><br/>
+                <a href=""/change_password_page""><button>Change Password</button></a><br/><br/>
+                <div id=""movementAlert""></div>
+                <script>
+                    async function checkMovement() {
+                        try {
+                            const response = await fetch('/check_movement');
+                            if (response.ok) {
+                                const text = await response.text();
+                                if (text === 'movement_detected') {
+                                    document.getElementById('movementAlert').innerHTML = '<h1 style=""color:red; font-size:30px; text-align:center"">There is someone at the door!</h1>';
+                                } else if (text === 'no_movement') {
+                                    document.getElementById('movementAlert').innerHTML = '';
+                                }
+                            } else {
+                                console.error('Error response from server');
+                            }
+                        } catch (error) {
+                            console.error('Error checking movement:', error);
+                        }
+                        setTimeout(checkMovement, 1000); // Check again after 1 second
+                    }
+                    window.onload = checkMovement;
+                </script>
+            </body>
+            </html>", System.Text.Encoding.UTF8);
         }
+
+
 
         private static async Task CaptureHandler(HttpContext context)
         {
@@ -326,5 +351,62 @@ namespace SimpleRestAPI
                 </body>
                 </html>", System.Text.Encoding.UTF8);
         }
+
+        private static async Task CheckMovementHandler(HttpContext context)
+        {
+            using (var client = new HttpClient())
+            {
+                try
+                {
+                    var response = await client.GetAsync("http://192.168.43.2/check_movement");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var result = await response.Content.ReadAsStringAsync();
+                        if (result.Trim() == "true")
+                        {
+                            // Take a picture using the same capture logic and save it
+                            var imageUrl = "http://192.168.43.2/capture";
+                            var response_2 = await client.GetAsync(imageUrl);
+                            if (response_2.IsSuccessStatusCode)
+                            {
+                                var imageBytes = await response_2.Content.ReadAsByteArrayAsync();
+                                await File.WriteAllBytesAsync("captured_image.jpg", imageBytes);
+                                await context.Response.WriteAsync("movement_detected");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Failed to capture image");
+                                await context.Response.WriteAsync("error");
+                            }
+                        }
+                        else
+                        {
+                            await context.Response.WriteAsync("no_movement");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Check movement request failed");
+                        await context.Response.WriteAsync("error");
+                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine($"Request error: {e.Message}");
+                    await context.Response.WriteAsync("error");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Unexpected error: {e.Message}");
+                    await context.Response.WriteAsync("error");
+                }
+            }
+        }
+
+
+
+
+
     }
 }

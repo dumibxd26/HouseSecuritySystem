@@ -15,6 +15,8 @@
 // WiFi credentials
 const char *ssid = SSID_PHONE;
 const char *password = PASSWORD_PHONE;
+bool is_arduino_active = false;
+unsigned long time_arduino_start_signal = 0;
 
 unsigned int previousMillis = 0;
 
@@ -81,10 +83,6 @@ void setup()
     // serial.println(password);
   }
 
-  Serial.println("\nWiFi connected");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
   // Initialize flash GPIO pin
   pinMode(FLASH_GPIO_PIN, OUTPUT);
   digitalWrite(FLASH_GPIO_PIN, LOW);
@@ -99,21 +97,35 @@ void setup()
 
   // Start the web server
   startServer();
-  Serial.println("Camera Ready! Use 'http://" + String(WiFi.localIP()) + "/' to connect");
 }
 
 void loop()
 {
+  // unsigned long currentMillis = millis();
 
-  unsigned long currentMillis = millis();
+  // if (currentMillis - previousMillis >= 5000)
+  // {
+  //   previousMillis = currentMillis;
+  //   Serial.println("Routes:");
+  //   Serial.println("http://" + String(WiFi.localIP()) + "/");
+  //   Serial.println("http://" + String(WiFi.localIP()) + "/capture");
+  //   Serial.println("http://" + String(WiFi.localIP()) + "/live_video");
+  // }
 
-  if (currentMillis - previousMillis >= 5000)
+  // wait for message "start" from arduino
+  if (Serial.available() > 0)
   {
-    previousMillis = currentMillis;
-    Serial.println("Routes:");
-    Serial.println("http://" + String(WiFi.localIP()) + "/");
-    Serial.println("http://" + String(WiFi.localIP()) + "/capture");
-    Serial.println("http://" + String(WiFi.localIP()) + "/live_video");
+    String message = Serial.readString();
+    if (message.startsWith("start"))
+    {
+      is_arduino_active = true;
+      time_arduino_start_signal = millis();
+    }
+    else if (message.startsWith("stop"))
+    {
+      is_arduino_active = false;
+      time_arduino_start_signal = 0;
+    }
   }
 }
 
@@ -164,6 +176,12 @@ void startServer()
       .handler = allow_access_handler,
       .user_ctx = NULL};
 
+  httpd_uri_t check_movement_uri = {
+      .uri = "/check_movement",
+      .method = HTTP_GET,
+      .handler = check_movement_handler,
+      .user_ctx = NULL};
+
   // Start the web server and register URI handlers
   if (httpd_start(&camera_httpd, &config) == ESP_OK)
   {
@@ -174,6 +192,7 @@ void startServer()
     httpd_register_uri_handler(camera_httpd, &deactivate_alarm_uri);
     httpd_register_uri_handler(camera_httpd, &change_password_uri);
     httpd_register_uri_handler(camera_httpd, &allow_access_uri);
+    httpd_register_uri_handler(camera_httpd, &check_movement_uri);
   }
 }
 

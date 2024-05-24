@@ -6,14 +6,14 @@ esp_err_t reinitialize_camera()
     esp_err_t err = esp_camera_deinit();
     if (err != ESP_OK)
     {
-        Serial.printf("Camera deinit failed with error 0x%x\n", err);
+        // Serial.printf("Camera deinit failed with error 0x%x\n", err);
         return err;
     }
 
     err = esp_camera_init(&camera_config);
     if (err != ESP_OK)
     {
-        Serial.printf("Camera init failed with error 0x%x\n", err);
+        // Serial.printf("Camera init failed with error 0x%x\n", err);
     }
     return err;
 }
@@ -26,7 +26,7 @@ void start_live_video()
     esp_err_t err = reinitialize_camera();
     if (err != ESP_OK)
     {
-        Serial.println("Failed to reinitialize camera for live video.");
+        // Serial.println("Failed to reinitialize camera for live video.");
     }
 }
 
@@ -38,20 +38,20 @@ void stop_live_video()
     esp_err_t err = reinitialize_camera();
     if (err != ESP_OK)
     {
-        Serial.println("Failed to reinitialize camera after live video.");
+        // Serial.println("Failed to reinitialize camera after live video.");
     }
 }
 
 // Handler to capture and send an image directly in chunks
 esp_err_t capture_handler(httpd_req_t *req)
 {
-    Serial.println("Accessed capture handler");
+    // Serial.println("Accessed capture handler");
 
     // Capture a single image
     camera_fb_t *fb = esp_camera_fb_get();
     if (!fb)
     {
-        Serial.println("Camera capture failed");
+        // Serial.println("Camera capture failed");
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -64,7 +64,7 @@ esp_err_t capture_handler(httpd_req_t *req)
     esp_err_t res = httpd_resp_send_chunk(req, (const char *)fb->buf, fb->len);
     if (res != ESP_OK)
     {
-        Serial.println("Failed to send image");
+        // Serial.println("Failed to send image");
     }
 
     // Finalize the HTTP response
@@ -77,7 +77,7 @@ esp_err_t capture_handler(httpd_req_t *req)
 esp_err_t live_video_handler(httpd_req_t *req)
 {
 
-    Serial.println("Accessed live video handler");
+    // Serial.println("Accessed live video handler");
     start_live_video();
     char *boundary = "frame";
     char part_buf[64];
@@ -101,7 +101,7 @@ esp_err_t live_video_handler(httpd_req_t *req)
         camera_fb_t *fb = esp_camera_fb_get();
         if (!fb)
         {
-            Serial.println("Camera capture failed");
+            // Serial.println("Camera capture failed");
             continue;
         }
 
@@ -119,4 +119,21 @@ esp_err_t live_video_handler(httpd_req_t *req)
 
     stop_live_video();
     return ESP_OK;
+}
+
+esp_err_t check_movement_handler(httpd_req_t *req)
+{
+
+    extern bool is_arduino_active;
+
+    if (is_arduino_active)
+    {
+        httpd_resp_send(req, "true", 4);
+        return ESP_OK;
+    }
+    else
+    {
+        httpd_resp_send(req, "false", 5);
+        return ESP_FAIL;
+    }
 }
